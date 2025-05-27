@@ -1,0 +1,100 @@
+﻿@inherits LayoutComponentBase
+
+<div class="app-container">
+    <nav class="sidebar">
+        <div class="app-title">Holland Mountain</div>
+        <ul class="nav-links">
+            <li><NavLink href="" Match="NavLinkMatch.All" class="nav-link">Home</NavLink></li>
+            <li><NavLink href="counter" class="nav-link">Counter</NavLink></li>
+            <li><NavLink href="fetchdata" class="nav-link">Fetch Data</NavLink></li>
+            <li><NavLink href="dataplatform" class="nav-link">ATLAS Data Platform</NavLink></li>
+        </ul>
+    </nav>
+    <div class="main-content">
+        <header class="top-navbar">
+            <h1>ATLAS Data Platform</h1>
+        </header>
+        <main class="content-area">
+            @Body
+        </main>
+    </div>
+</div>
+
+<style>
+    /* General styling */
+    .app-container {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+    /* Sidebar */
+    nav.sidebar {
+      width: 260px;
+      background-color: #212529;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+    }
+    nav.sidebar .app-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #343a40;
+      user-select: none;
+    }
+    nav.sidebar ul.nav-links {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      flex-grow: 1;
+    }
+    nav.sidebar ul.nav-links li {
+      border-bottom: 1px solid #343a40;
+    }
+    nav.sidebar ul.nav-links li .nav-link {
+      display: block;
+      padding: 0.75rem 1.5rem;
+      color: #ced4da;
+      text-decoration: none;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+    nav.sidebar ul.nav-links li .nav-link:hover,
+    nav.sidebar ul.nav-links li .nav-link.active {
+      background-color: #0d6efd;
+      color: white;
+      font-weight: 600;
+    }
+    /* Main content */
+    .main-content {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Top navbar */
+    header.top-navbar {
+      background-color: white;
+      border-bottom: 1px solid #dee2e6;
+      padding: 0.5rem 1rem;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+    }
+    header.top-navbar h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #0d6efd;
+      margin: 0;
+    }
+    /* Content area */
+    main.content-area {
+      padding: 1.5rem;
+      background-color: white;
+      overflow-y: auto;
+      flex-grow: 1;
+    }
+
+    }
+</style>

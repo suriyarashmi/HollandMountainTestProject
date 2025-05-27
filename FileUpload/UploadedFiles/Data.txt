@@ -1,0 +1,7 @@
+customerId Name
+
+1          Rashmi
+
+2          Kartik
+
+3          Suriya

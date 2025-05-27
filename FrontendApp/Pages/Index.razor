@@ -1,0 +1,138 @@
+﻿@page "/"
+@using System.Net.Http.Headers
+@using System.Net.Http.Json
+@using FrontendApp.Models
+@inject HttpClient Http
+
+<h1 class="text-center">ATLAS Data Platform</h1>
+<h3 class="text-center mb-3">Documents Upload Service</h3>
+
+<div class="form-group">
+    <label for="recordId">Record ID:</label>
+    <input id="recordId" class="form-control" type="text" @bind="recordId" placeholder="Enter Record ID" />
+</div>
+
+<div class="form-group">
+    <label for="fileInput">File:</label>
+    <InputFile OnChange="HandleFileSelected" class="form-control mb-2" />
+</div>
+
+<button class="btn btn-primary" @onclick="UploadFile" disabled="@(!isFileSelected)">Upload</button>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <p>@message</p>
+}
+
+@if (fileList?.Any() == true)
+{
+    <h4 class="mt-4">Uploaded Files</h4>
+    <table class="file-table">
+        <thead>
+            <tr>
+                <th>File Name</th>
+                <th>File Size(KB)</th>
+                <th>Date Modified</th>
+				<th>File Link</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var file in fileList)
+            {
+                <tr>
+                    <td>@file.FileName</td>
+                    <td>@file.Size</td>
+                    <td>@file.DateModified.ToString("g")</td>
+                    <td>
+                        <a href="@($"https://localhost:7106/UploadedFiles/{file.FileName}")" target="_blank">
+                            @file.FileName
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private string recordId;
+    private IBrowserFile selectedFile;
+    private bool isFileSelected = false;
+    private string message;
+    private List<FileMetadata> fileList = new();
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        isFileSelected = selectedFile != null;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFiles();
+    }
+
+    private async Task LoadFiles()
+    {
+        try
+        {
+            fileList = await Http.GetFromJsonAsync<List<FileMetadata>>("https://localhost:7106/api/File");
+        }
+        catch
+        {
+            message = "Failed to load files.";
+        }
+    }
+
+    private async Task UploadFile()
+    {
+        if (selectedFile == null || string.IsNullOrWhiteSpace(recordId))
+        {
+            message = "Please select a file and enter a record ID.";
+            return;
+        }
+
+        var content = new MultipartFormDataContent();
+        var streamContent = new StreamContent(selectedFile.OpenReadStream(5_000_000));
+        streamContent.Headers.ContentType = new MediaTypeHeaderValue(selectedFile.ContentType);
+
+        content.Add(streamContent, "File", selectedFile.Name);
+        content.Add(new StringContent(recordId), "RecordId");
+
+        var response = await Http.PostAsync("https://localhost:7106/api/File/upload", content);
+
+        message = response.IsSuccessStatusCode ? "Upload successful!" : "Upload failed.";
+
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadFiles();
+        }
+    }
+}
+
+<style>
+    .file-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+        .file-table th, .file-table td {
+            border: 1px solid #ddd;
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        .file-table thead {
+            background-color: #0078d4;
+            color: white;
+        }
+
+        .file-table tbody tr:nth-child(even) {
+            background-color: #f3f3f3;
+        }
+
+        .file-table tbody tr:hover {
+            background-color: #e1f0ff;
+        }
+</style>
