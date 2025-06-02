@@ -1,12 +1,12 @@
-using static TestProject.Services.StorageService;
 using TestProject.Interfaces;
+using TestProject.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
-builder.Services.AddSingleton<IStorageService, LocalStorageService>();
+builder.Services.AddSingleton<IStorageService, StorageService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazorWasm", policy =>

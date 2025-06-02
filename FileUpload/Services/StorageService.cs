@@ -1,40 +1,56 @@
-﻿using TestProject.Interfaces;
-using TestProject.Models;
+﻿using FileUpload.Models.Entities;
+using FrontendApp.Models;
+using Microsoft.AspNetCore.Http;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using TestProject.Interfaces;
 
 namespace TestProject.Services
 {
-    public class StorageService
+    public class StorageService : IStorageService
     {
-        public class LocalStorageService : IStorageService
-        {
-            private readonly string _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "Uploads");
-            private readonly List<FileData> _fileStore = new();
+        private readonly string _storagePath;
 
-            public LocalStorageService()
+        public StorageService()
+        {
+            _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "UploadedFiles");
+            if (!Directory.Exists(_storagePath))
             {
                 Directory.CreateDirectory(_storagePath);
             }
+        }
 
-            public async Task SaveFileAsync(IFormFile file, string recordId)
+        public async Task SaveFileAsync(FileData file, IFormFile formFile)
+        {
+            var filePath = Path.Combine(_storagePath, formFile.FileName);
+            using (var stream = new FileStream(filePath, FileMode.Create))
             {
-                var filePath = Path.Combine(_storagePath, file.FileName);
+                await formFile.CopyToAsync(stream);
+            }
+        }
 
-                using var stream = new FileStream(filePath, FileMode.Create);
-                await file.CopyToAsync(stream);
-
-                _fileStore.Add(new FileData
+        public Task<List<FileMetadata>> GetAllFilesMetadataAsync()
+        {
+            var files = Directory.GetFiles(_storagePath)
+                .Select(filePath =>
                 {
-                    FileName = file.FileName,                    
-                    RecordId = recordId
-                   
-                });
-            }
+                    var fileInfo = new FileInfo(filePath);
+                    var sizeKb = Math.Round(fileInfo.Length / 1024.0, 3);
+                    var bstTimeZone = TimeZoneInfo.FindSystemTimeZoneById("GMT Standard Time");
+                    var dateModifiedBst = TimeZoneInfo.ConvertTimeFromUtc(fileInfo.LastWriteTimeUtc, bstTimeZone);
+                    return new FileMetadata
+                    {
+                        FileName = fileInfo.Name,
+                        Size = sizeKb,
+                        DateModified = dateModifiedBst
+                    };
+                })
+                .ToList();
 
-            public Task<IEnumerable<FileData>> GetFilesAsync(string recordId)
-            {
-                var result = _fileStore.Where(f => f.RecordId == recordId);
-                return Task.FromResult(result.AsEnumerable());
-            }
+            return Task.FromResult(files);
         }
     }
 }

@@ -1,92 +1,36 @@
-﻿using FileUpload.Services;
-using FrontendApp.Models;
+﻿using FileUpload.Models.DTOs;
+using FileUpload.Models.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging; // Add this for logging
-using System.Collections.Concurrent;
-using System.IO;
-using System.Linq;
+using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
-using TestProject.Models; // Replace with your namespace for FileData and FileDto
+using TestProject.Interfaces;
 
 namespace FileUploadApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class FileController : ControllerBase
+    public class DocumentController : ControllerBase
     {
-        private readonly string _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "UploadedFiles");
-        private static readonly ConcurrentDictionary<string, List<FileData>> _filesByRecord = new();
-        private readonly ILogger<FileController> _logger; // Logger for logging
+        private readonly ILogger<DocumentController> _logger;
+        private readonly IStorageService _storage;
 
-        public FileController(ILogger<FileController> logger)
+        public DocumentController(ILogger<DocumentController> logger, IStorageService storage)
         {
-            _logger = logger; // Initialize logger
-            if (!Directory.Exists(_storagePath))
-            {
-                Directory.CreateDirectory(_storagePath);
-            }
-
-            // Load existing files from disk into in-memory dictionary (Optional, for persistence after restart)
-            LoadExistingFiles();
+            _logger = logger;
+            _storage = storage;
         }
 
-        // Load existing files from disk (Optional enhancement for POC)
-        private void LoadExistingFiles()
-        {
-            var files = Directory.GetFiles(_storagePath);
-            foreach (var filePath in files)
-            {
-                var fileName = Path.GetFileName(filePath);
-                var recordId = "N/A"; // Since RecordId is not saved on disk, you may adjust logic here
-
-                var fileData = new FileData
-                {
-                    FileName = fileName,
-                    RecordId = recordId
-                };
-
-                _filesByRecord.AddOrUpdate(recordId,
-                    new List<FileData> { fileData },
-                    (key, existingList) =>
-                    {
-                        existingList.Add(fileData);
-                        return existingList;
-                    });
-            }
-        }
-
-        // GET: api/file
+        // GET: api/document
         [HttpGet]
-        public ActionResult<List<FileData>> Get()
+        public async Task<IActionResult> Get()
         {
-
-            if (!Directory.Exists("UploadedFiles"))
-                return Ok(new List<object>()); // return empty list if folder doesn't exist
-            var files = Directory.GetFiles(_storagePath)
-                .Select(filePath =>
-                {
-                    var fileInfo = new FileInfo(filePath);
-                    var fileSizeInBytes = fileInfo.Length; // Get file size in bytes
-                    var fileSizeInKB = fileSizeInBytes / 1024.0; // Convert to KB
-                    var RoundfileSizeInKB = Math.Round(fileSizeInKB, 3, MidpointRounding.AwayFromZero);
-                    var dateModifiedUtc = fileInfo.LastWriteTimeUtc;
-                    // Convert UTC to British Summer Time
-                    var bstTimeZone = TimeZoneInfo.FindSystemTimeZoneById("GMT Standard Time");
-                    var dateModifiedBst = TimeZoneInfo.ConvertTimeFromUtc(dateModifiedUtc, bstTimeZone);
-                    return new FileMetadata
-                    {
-                        FileName = fileInfo.Name,
-                        Size = RoundfileSizeInKB,
-                        DateModified = dateModifiedBst
-                    };
-                })
-                .ToList();
-            _logger.LogInformation($"Retrieved {files.Count} files."); // Log the count of files
+            var files = await _storage.GetAllFilesMetadataAsync();
+            _logger.LogInformation($"Retrieved {files.Count} files.");
             return Ok(files);
         }
 
-        // POST: api/file/upload
+        // POST: api/document/upload
         [HttpPost("upload")]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(52428800)] // 50 MB limit
@@ -98,28 +42,15 @@ namespace FileUploadApi.Controllers
             if (string.IsNullOrWhiteSpace(dto.RecordId))
                 return BadRequest("RecordId is required.");
 
-            var filePath = Path.Combine(_storagePath, dto.File.FileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await dto.File.CopyToAsync(stream);
-            }
-
             var fileData = new FileData
             {
                 FileName = dto.File.FileName,
                 RecordId = dto.RecordId
             };
 
-            _filesByRecord.AddOrUpdate(dto.RecordId,
-                new List<FileData> { fileData },
-                (key, existingList) =>
-                {
-                    existingList.Add(fileData);
-                    return existingList;
-                });
+            await _storage.SaveFileAsync(fileData, dto.File);
 
-            _logger.LogInformation($"File uploaded: {dto.File.FileName} with RecordId: {dto.RecordId}"); // Log upload
+            _logger.LogInformation($"File uploaded: {dto.File.FileName} with RecordId: {dto.RecordId}");
             return Ok(new { message = "File uploaded successfully", file = dto.File.FileName });
         }
     }

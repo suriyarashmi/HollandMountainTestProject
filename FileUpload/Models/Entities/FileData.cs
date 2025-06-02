@@ -1,11 +1,9 @@
-﻿namespace TestProject.Models
+﻿namespace FileUpload.Models.Entities
 {
     public class FileData
     {
-        
-            public string FileName;            
-            public string RecordId;
-              
+        public string FileName;
+        public string RecordId;
 
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace FileUpload.Services
+﻿namespace FileUpload.Models.DTOs
 {
     public class FileDto
     {

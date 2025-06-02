@@ -1,10 +1,13 @@
-﻿using TestProject.Models;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using FileUpload.Models.Entities;
+using FrontendApp.Models;
 
 namespace TestProject.Interfaces
 {
     public interface IStorageService
     {
-        Task SaveFileAsync(IFormFile file, string recordId);
-        Task<IEnumerable<FileData>> GetFilesAsync(string recordId);
+        Task SaveFileAsync(FileData file, IFormFile formFile);
+        Task<List<FileMetadata>> GetAllFilesMetadataAsync();
     }
 }

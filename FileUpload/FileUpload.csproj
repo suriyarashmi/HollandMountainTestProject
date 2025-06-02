@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Controllers\FileController.cs" />
     <Compile Remove="Controllers\HomeController.cs" />
   </ItemGroup>
 
